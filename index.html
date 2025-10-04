@@ -2,554 +2,314 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>AR Camera Objects</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+    <title>Mobile AR - Working</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- Latest AR.js -->
+    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1c2407b26c61958baa93967b5412487cd94b290b/dist/aframe-master.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
             overflow: hidden;
+            font-family: Arial, sans-serif;
         }
         
-        .menu {
+        #startButton {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 30px 60px;
+            font-size: 24px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        
-        .menu.hidden {
-            display: none;
-        }
-        
-        .menu h1 {
             color: white;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        
-        .menu-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            width: 90%;
-            max-width: 400px;
-        }
-        
-        .btn {
-            padding: 20px;
             border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
+            border-radius: 50px;
             cursor: pointer;
-            transition: transform 0.3s;
+            z-index: 9999;
+            font-weight: bold;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
         
-        .btn:hover {
-            transform: scale(1.05);
+        #startButton:active {
+            transform: translate(-50%, -50%) scale(0.95);
         }
         
-        .btn-ar {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-        }
-        
-        .btn-3d {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-        }
-        
-        .btn-admin {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            color: white;
-        }
-        
-        .controls {
+        .info-panel {
             position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.8);
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
             padding: 15px;
             border-radius: 10px;
-            color: white;
-            display: none;
             z-index: 999;
-        }
-        
-        .controls.visible {
-            display: block;
-        }
-        
-        .back-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            background: rgba(255,255,255,0.9);
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            z-index: 1000;
             display: none;
+            font-size: 14px;
         }
         
-        .back-btn.visible {
+        .info-panel.visible {
             display: block;
         }
         
-        .admin-panel {
+        .marker-preview {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            bottom: 10px;
+            right: 10px;
+            width: 100px;
+            height: 100px;
             background: white;
-            overflow-y: auto;
-            display: none;
-            padding: 20px;
-            z-index: 1000;
-        }
-        
-        .admin-panel.visible {
-            display: block;
-        }
-        
-        .admin-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
+            border: 3px solid #667eea;
             border-radius: 10px;
-            margin-bottom: 20px;
+            padding: 5px;
+            z-index: 999;
+            display: none;
         }
         
-        .form-group {
-            margin-bottom: 15px;
-        }
-        
-        .form-group label {
+        .marker-preview.visible {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
         }
         
-        .form-group input, .form-group select {
+        .marker-preview img {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
+            height: 100%;
         }
         
-        .objects-list {
-            margin-top: 20px;
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 10px;
+        #arjsDebugUIContainer {
+            display: none !important;
         }
         
-        .object-item {
-            background: white;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .delete-btn {
-            background: #f44336;
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        
-        #scene-3d {
+            font-size: 20px;
+            z-index: 9998;
             display: none;
+            text-align: center;
+            background: rgba(0,0,0,0.8);
+            padding: 30px;
+            border-radius: 20px;
         }
         
-        #scene-3d.visible {
-            display: block;
-        }
-        
-        #scene-ar {
-            display: none;
-        }
-        
-        #scene-ar.visible {
+        .loading.visible {
             display: block;
         }
     </style>
 </head>
 <body>
-    <!-- Main Menu -->
-    <div id="menu" class="menu">
-        <h1>🌐 AR Object Viewer</h1>
-        <div class="menu-buttons">
-            <button class="btn btn-ar" onclick="startAR()">📷 Camera AR View</button>
-            <button class="btn btn-3d" onclick="start3D()">🎮 3D Preview</button>
-            <button class="btn btn-admin" onclick="openAdmin()">⚙️ Manage Objects</button>
-        </div>
-        <p style="color: white; margin-top: 20px; text-align: center; padding: 0 20px;">
-            Note: Camera AR requires HTTPS. Deploy to GitHub Pages or Netlify for camera access.
-        </p>
+    <!-- Start Button -->
+    <button id="startButton" onclick="startAR()">Start AR Camera</button>
+    
+    <!-- Loading Screen -->
+    <div id="loading" class="loading">
+        <div>📷 Starting Camera...</div>
+        <div style="margin-top: 10px; font-size: 14px;">Allow camera access when prompted</div>
     </div>
-
-    <!-- Back Button -->
-    <button id="backBtn" class="back-btn" onclick="goBack()">← Back</button>
-
-    <!-- AR Camera Scene -->
+    
+    <!-- Info Panel -->
+    <div id="infoPanel" class="info-panel">
+        <strong>📱 Mobile AR Active</strong><br>
+        Point camera at the HIRO marker below<br>
+        <span id="status">Initializing...</span>
+    </div>
+    
+    <!-- Marker Preview -->
+    <div id="markerPreview" class="marker-preview">
+        <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/three.js/examples/marker-training/examples/pattern-images/pattern-hiro.png" alt="HIRO Marker">
+    </div>
+    
+    <!-- AR Scene -->
     <a-scene
-        id="scene-ar"
+        id="arScene"
+        style="display: none;"
         embedded
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
         vr-mode-ui="enabled: false"
-        renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; alpha: true;">
+        renderer="logarithmicDepthBuffer: true; antialias: true; colorManagement: true; sortObjects: true;"
+        smooth="true"
+        smoothCount="10"
+        smoothTolerance="0.01"
+        smoothThreshold="5">
         
-        <a-assets>
-            <a-asset-item id="messageText" inline>AR Objects Loading...</a-asset-item>
-        </a-assets>
-
-        <!-- Camera -->
-        <a-entity camera></a-entity>
-        
-        <!-- Marker-based AR (works better than GPS) -->
-        <a-marker preset="hiro">
-            <a-box position="0 0.5 0" material="color: red;" animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"></a-box>
-            <a-text value="RED BOX" position="0 1.5 0" align="center" color="white"></a-text>
+        <!-- Create marker with HIRO pattern -->
+        <a-marker
+            id="hiroMarker"
+            preset="hiro"
+            raycaster="objects: .clickable"
+            emitevents="true"
+            smooth="true"
+            smoothCount="10"
+            smoothTolerance="0.01"
+            smoothThreshold="5">
+            
+            <!-- Animated Box -->
+            <a-box
+                position="0 0.5 0"
+                scale="1 1 1"
+                material="color: #4CC3D9; metalness: 0.5; roughness: 0.1"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"
+                animation__2="property: position; to: 0 1 0; loop: true; dur: 2000; dir: alternate; easing: easeInOutQuad"
+                shadow>
+            </a-box>
+            
+            <!-- Sphere -->
+            <a-sphere
+                position="1.5 0.5 0"
+                radius="0.5"
+                material="color: #FF6B6B; metalness: 0.3"
+                animation="property: rotation; to: 360 0 0; loop: true; dur: 4000"
+                shadow>
+            </a-sphere>
+            
+            <!-- Cylinder -->
+            <a-cylinder
+                position="-1.5 0.5 0"
+                radius="0.4"
+                height="1"
+                material="color: #7FFF00"
+                animation="property: rotation; to: 0 0 360; loop: true; dur: 5000"
+                shadow>
+            </a-cylinder>
+            
+            <!-- Text Label -->
+            <a-text
+                value="AR OBJECTS"
+                position="0 2 0"
+                align="center"
+                color="#FFFFFF"
+                width="8"
+                font="kelsonsans"
+                animation="property: scale; to: 1.2 1.2 1.2; loop: true; dur: 1500; dir: alternate">
+            </a-text>
+            
+            <!-- Torus -->
+            <a-torus
+                position="0 0.5 -1.5"
+                color="#FF69B4"
+                radius="0.4"
+                radius-tubular="0.1"
+                animation="property: rotation; to: 0 360 360; loop: true; dur: 6000">
+            </a-torus>
+            
+            <!-- Cone -->
+            <a-cone
+                position="0 0.5 1.5"
+                color="#FFD700"
+                radius-bottom="0.5"
+                height="1"
+                animation="property: position; to: 0 1.5 1.5; loop: true; dur: 3000; dir: alternate">
+            </a-cone>
+            
+            <!-- Ground Plane -->
+            <a-plane
+                position="0 0 0"
+                rotation="-90 0 0"
+                width="4"
+                height="4"
+                material="color: #2E2E2E; opacity: 0.8"
+                shadow>
+            </a-plane>
         </a-marker>
         
+        <!-- Add marker for Kanji pattern -->
         <a-marker preset="kanji">
-            <a-sphere position="0 0.5 0" radius="0.5" material="color: blue;" animation="property: position; to: 0 1.5 0; loop: true; dur: 2000; dir: alternate"></a-sphere>
-            <a-text value="BLUE SPHERE" position="0 2 0" align="center" color="white"></a-text>
+            <a-sphere
+                position="0 0.5 0"
+                radius="0.8"
+                material="color: #FF1493; wireframe: true"
+                animation="property: rotation; to: 0 360 360; loop: true; dur: 3000">
+            </a-sphere>
+            <a-text
+                value="KANJI MARKER"
+                position="0 1.5 0"
+                align="center"
+                color="#00FF00"
+                width="6">
+            </a-text>
         </a-marker>
         
-        <a-marker type="barcode" value="5">
-            <a-cylinder position="0 0.5 0" radius="0.5" height="1" material="color: green;" animation="property: rotation; to: 360 0 0; loop: true; dur: 3000"></a-cylinder>
-            <a-text value="GREEN CYLINDER" position="0 2 0" align="center" color="white"></a-text>
-        </a-marker>
+        <!-- Camera Entity -->
+        <a-entity camera></a-entity>
     </a-scene>
-
-    <!-- 3D Preview Scene -->
-    <a-scene id="scene-3d" embedded vr-mode-ui="enabled: false">
-        <a-assets>
-            <img id="skyTexture" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23001122'/%3E%3Cstop offset='100%25' style='stop-color:%23004466'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23grad)'/%3E%3C/svg%3E">
-        </a-assets>
-        
-        <a-sky src="#skyTexture"></a-sky>
-        
-        <!-- Lighting -->
-        <a-light type="ambient" color="#445"></a-light>
-        <a-light type="point" intensity="2" position="2 4 4"></a-light>
-        
-        <!-- Ground -->
-        <a-plane position="0 0 -4" rotation="-90 0 0" width="50" height="50" color="#1a1a2e" shadow></a-plane>
-        
-        <!-- Grid lines -->
-        <a-entity id="grid3d"></a-entity>
-        
-        <!-- Objects Container -->
-        <a-entity id="objects3d" position="0 0 -5"></a-entity>
-        
-        <!-- Camera with controls -->
-        <a-camera position="0 2 5" look-controls wasd-controls>
-            <a-cursor color="#4CC3D9"></a-cursor>
-        </a-camera>
-    </a-scene>
-
-    <!-- Controls Info -->
-    <div id="controls" class="controls">
-        <div id="controlsContent"></div>
-    </div>
-
-    <!-- Admin Panel -->
-    <div id="adminPanel" class="admin-panel">
-        <div class="admin-header">
-            <h2>Object Manager</h2>
-        </div>
-        
-        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-            <h3>Add New Object</h3>
-            <form id="objectForm" onsubmit="addObject(event)">
-                <div class="form-group">
-                    <label>Name:</label>
-                    <input type="text" id="objName" required>
-                </div>
-                <div class="form-group">
-                    <label>Type:</label>
-                    <select id="objType">
-                        <option value="box">Box</option>
-                        <option value="sphere">Sphere</option>
-                        <option value="cylinder">Cylinder</option>
-                        <option value="cone">Cone</option>
-                        <option value="torus">Torus</option>
-                        <option value="ring">Ring</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Color:</label>
-                    <input type="color" id="objColor" value="#ff0000">
-                </div>
-                <div class="form-group">
-                    <label>Size:</label>
-                    <input type="range" id="objSize" min="0.5" max="5" step="0.5" value="1">
-                    <span id="sizeValue">1</span>
-                </div>
-                <div class="form-group">
-                    <label>Position X:</label>
-                    <input type="number" id="posX" value="0" step="0.5">
-                </div>
-                <div class="form-group">
-                    <label>Position Z:</label>
-                    <input type="number" id="posZ" value="-5" step="0.5">
-                </div>
-                <button type="submit" class="btn btn-admin" style="width: 100%;">Add Object</button>
-            </form>
-        </div>
-        
-        <div class="objects-list">
-            <h3>Current Objects (<span id="objCount">0</span>)</h3>
-            <div id="objectsList"></div>
-        </div>
-    </div>
 
     <script>
-        // Store objects
-        let arObjects = JSON.parse(localStorage.getItem('arObjects')) || [
-            { id: 1, name: 'Demo Box', type: 'box', color: '#FF0000', size: 1, x: 0, z: -5 },
-            { id: 2, name: 'Demo Sphere', type: 'sphere', color: '#00FF00', size: 0.8, x: 2, z: -5 },
-            { id: 3, name: 'Demo Cylinder', type: 'cylinder', color: '#0000FF', size: 1.2, x: -2, z: -5 }
-        ];
+        let isARStarted = false;
         
-        // Save to localStorage
-        function saveObjects() {
-            localStorage.setItem('arObjects', JSON.stringify(arObjects));
-            updateObjectsList();
-        }
-        
-        // Update size display
-        document.getElementById('objSize').addEventListener('input', function(e) {
-            document.getElementById('sizeValue').textContent = e.target.value;
-        });
-        
-        // Start AR Camera
         function startAR() {
-            // Check if running from file://
-            if (window.location.protocol === 'file:') {
-                if (confirm('Camera AR requires HTTPS to work.\n\nOptions:\n1. Deploy to GitHub Pages (free)\n2. Use Netlify Drop (instant)\n3. Try 3D Preview instead\n\nWould you like to try 3D Preview mode?')) {
-                    start3D();
-                }
-                return;
-            }
+            if (isARStarted) return;
+            isARStarted = true;
             
-            document.getElementById('menu').classList.add('hidden');
-            document.getElementById('scene-ar').classList.add('visible');
-            document.getElementById('backBtn').classList.add('visible');
-            document.getElementById('controls').classList.add('visible');
+            // Hide button, show loading
+            document.getElementById('startButton').style.display = 'none';
+            document.getElementById('loading').classList.add('visible');
             
-            document.getElementById('controlsContent').innerHTML = `
-                <strong>📷 AR Camera Mode</strong><br>
-                Print these markers to see objects:<br>
-                • HIRO marker: Red box<br>
-                • KANJI marker: Blue sphere<br>
-                • Barcode #5: Green cylinder<br>
-                <a href="https://github.com/AR-js-org/AR.js/tree/master/data/images" target="_blank" style="color: #4CC3D9;">Get Markers</a>
-            `;
+            // Check if HTTPS or localhost
+            const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
             
-            renderARObjects();
-        }
-        
-        // Start 3D Preview
-        function start3D() {
-            document.getElementById('menu').classList.add('hidden');
-            document.getElementById('scene-3d').classList.add('visible');
-            document.getElementById('backBtn').classList.add('visible');
-            document.getElementById('controls').classList.add('visible');
-            
-            document.getElementById('controlsContent').innerHTML = `
-                <strong>🎮 3D Preview Mode</strong><br>
-                • Drag: Rotate view<br>
-                • Scroll: Zoom<br>
-                • WASD: Move<br>
-                • Click objects to select
-            `;
-            
-            render3DObjects();
-        }
-        
-        // Open Admin
-        function openAdmin() {
-            document.getElementById('menu').classList.add('hidden');
-            document.getElementById('adminPanel').classList.add('visible');
-            document.getElementById('backBtn').classList.add('visible');
-            updateObjectsList();
-        }
-        
-        // Go Back
-        function goBack() {
-            document.getElementById('menu').classList.remove('hidden');
-            document.getElementById('scene-ar').classList.remove('visible');
-            document.getElementById('scene-3d').classList.remove('visible');
-            document.getElementById('adminPanel').classList.remove('visible');
-            document.getElementById('backBtn').classList.remove('visible');
-            document.getElementById('controls').classList.remove('visible');
-        }
-        
-        // Add Object
-        function addObject(e) {
-            e.preventDefault();
-            
-            const newObj = {
-                id: Date.now(),
-                name: document.getElementById('objName').value,
-                type: document.getElementById('objType').value,
-                color: document.getElementById('objColor').value,
-                size: parseFloat(document.getElementById('objSize').value),
-                x: parseFloat(document.getElementById('posX').value),
-                z: parseFloat(document.getElementById('posZ').value)
-            };
-            
-            arObjects.push(newObj);
-            saveObjects();
-            
-            document.getElementById('objectForm').reset();
-            document.getElementById('sizeValue').textContent = '1';
-            
-            alert('Object added! View in 3D Preview or AR Camera.');
-        }
-        
-        // Delete Object
-        function deleteObject(id) {
-            arObjects = arObjects.filter(obj => obj.id !== id);
-            saveObjects();
-        }
-        
-        // Update Objects List
-        function updateObjectsList() {
-            const list = document.getElementById('objectsList');
-            document.getElementById('objCount').textContent = arObjects.length;
-            
-            if (arObjects.length === 0) {
-                list.innerHTML = '<p>No objects yet. Add some above!</p>';
-                return;
-            }
-            
-            list.innerHTML = arObjects.map(obj => `
-                <div class="object-item">
-                    <div>
-                        <strong>${obj.name}</strong><br>
-                        <small>${obj.type} | ${obj.color} | Size: ${obj.size}</small>
+            if (!isSecure && location.protocol === 'file:') {
+                alert('⚠️ Camera access requires HTTPS!\n\nQuick fix:\n1. Upload this file to GitHub Pages\n2. Or drag to app.netlify.com/drop\n3. Or use a local server\n\nThe 3D objects WILL appear once deployed!');
+                document.getElementById('loading').innerHTML = `
+                    <div>❌ HTTPS Required</div>
+                    <div style="margin-top: 10px; font-size: 14px;">
+                        Deploy this file online to use camera AR<br>
+                        <a href="https://app.netlify.com/drop" target="_blank" style="color: #4CC3D9;">
+                            Click here for instant deployment
+                        </a>
                     </div>
-                    <button class="delete-btn" onclick="deleteObject(${obj.id})">Delete</button>
-                </div>
-            `).join('');
-        }
-        
-        // Render objects in AR scene
-        function renderARObjects() {
-            // Objects are added via markers in AR mode
-            // This is more reliable than GPS-based AR
-        }
-        
-        // Render objects in 3D scene
-        function render3DObjects() {
-            const container = document.getElementById('objects3d');
-            container.innerHTML = '';
+                `;
+                return;
+            }
             
-            arObjects.forEach((obj, index) => {
-                const entity = document.createElement('a-entity');
-                entity.setAttribute('position', `${obj.x} ${obj.size} ${obj.z}`);
+            // Show AR scene
+            setTimeout(() => {
+                document.getElementById('arScene').style.display = 'block';
+                document.getElementById('loading').classList.remove('visible');
+                document.getElementById('infoPanel').classList.add('visible');
+                document.getElementById('markerPreview').classList.add('visible');
                 
-                let primitive;
-                switch(obj.type) {
-                    case 'sphere':
-                        primitive = document.createElement('a-sphere');
-                        primitive.setAttribute('radius', obj.size);
-                        break;
-                    case 'cylinder':
-                        primitive = document.createElement('a-cylinder');
-                        primitive.setAttribute('radius', obj.size / 2);
-                        primitive.setAttribute('height', obj.size * 2);
-                        break;
-                    case 'cone':
-                        primitive = document.createElement('a-cone');
-                        primitive.setAttribute('radius-bottom', obj.size);
-                        primitive.setAttribute('height', obj.size * 2);
-                        break;
-                    case 'torus':
-                        primitive = document.createElement('a-torus');
-                        primitive.setAttribute('radius', obj.size);
-                        primitive.setAttribute('radius-tubular', obj.size / 4);
-                        break;
-                    case 'ring':
-                        primitive = document.createElement('a-ring');
-                        primitive.setAttribute('radius-inner', obj.size / 2);
-                        primitive.setAttribute('radius-outer', obj.size);
-                        break;
-                    default: // box
-                        primitive = document.createElement('a-box');
-                        primitive.setAttribute('width', obj.size);
-                        primitive.setAttribute('height', obj.size);
-                        primitive.setAttribute('depth', obj.size);
+                // Update status
+                document.getElementById('status').textContent = 'Ready! Show HIRO marker to camera';
+                
+                // Listen for marker events
+                const marker = document.getElementById('hiroMarker');
+                if (marker) {
+                    marker.addEventListener('markerFound', () => {
+                        document.getElementById('status').textContent = '✅ Marker detected! Showing objects...';
+                        console.log('Marker found!');
+                    });
+                    
+                    marker.addEventListener('markerLost', () => {
+                        document.getElementById('status').textContent = '👀 Looking for marker...';
+                        console.log('Marker lost');
+                    });
                 }
-                
-                primitive.setAttribute('color', obj.color);
-                primitive.setAttribute('shadow', true);
-                primitive.setAttribute('animation', `property: rotation; to: 0 360 0; loop: true; dur: ${5000 + index * 1000}`);
-                
-                entity.appendChild(primitive);
-                
-                // Add label
-                const text = document.createElement('a-text');
-                text.setAttribute('value', obj.name);
-                text.setAttribute('align', 'center');
-                text.setAttribute('position', `0 ${obj.size + 1} 0`);
-                text.setAttribute('color', '#FFF');
-                entity.appendChild(text);
-                
-                container.appendChild(entity);
-            });
-            
-            // Add grid
-            const grid = document.getElementById('grid3d');
-            grid.innerHTML = '';
-            for (let i = -10; i <= 10; i += 2) {
-                // X lines
-                const xLine = document.createElement('a-plane');
-                xLine.setAttribute('width', '0.05');
-                xLine.setAttribute('height', '20');
-                xLine.setAttribute('rotation', '-90 0 0');
-                xLine.setAttribute('position', `${i} 0.01 0`);
-                xLine.setAttribute('color', '#333');
-                grid.appendChild(xLine);
-                
-                // Z lines
-                const zLine = document.createElement('a-plane');
-                zLine.setAttribute('width', '20');
-                zLine.setAttribute('height', '0.05');
-                zLine.setAttribute('rotation', '-90 0 0');
-                zLine.setAttribute('position', `0 0.01 ${i}`);
-                zLine.setAttribute('color', '#333');
-                grid.appendChild(zLine);
+            }, 1000);
+        }
+        
+        // Auto-start on mobile if HTTPS
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            if (location.protocol === 'https:') {
+                console.log('Mobile device detected with HTTPS');
             }
         }
         
-        // Initialize
-        saveObjects();
+        // Debug info
+        window.addEventListener('load', () => {
+            console.log('AR.js Mobile Ready');
+            console.log('Protocol:', location.protocol);
+            console.log('User Agent:', navigator.userAgent);
+        });
     </script>
 </body>
 </html>
