@@ -1,1068 +1,555 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <meta http-equiv="Permissions-Policy" content="geolocation=(self), camera=(self)">
-    <title>Geo AR Object Display System</title>
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <meta charset="utf-8">
+    <title>AR Camera Objects</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
             overflow: hidden;
         }
-
-        /* Mode Selection Screen */
-        #modeSelection {
+        
+        .menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            padding: 20px;
+            z-index: 1000;
         }
-
-        .mode-container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 500px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
+        
+        .menu.hidden {
+            display: none;
         }
-
-        .mode-container h1 {
-            text-align: center;
-            color: #333;
+        
+        .menu h1 {
+            color: white;
             margin-bottom: 30px;
-            font-size: 28px;
+            text-align: center;
         }
-
-        .mode-buttons {
+        
+        .menu-buttons {
             display: flex;
-            gap: 15px;
             flex-direction: column;
+            gap: 15px;
+            width: 90%;
+            max-width: 400px;
         }
-
-        .mode-btn {
+        
+        .btn {
             padding: 20px;
-            font-size: 18px;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            transition: transform 0.3s;
         }
-
-        .admin-btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn-ar {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
         }
-
-        .viewer-btn {
-            background: linear-gradient(135deg, #f093fb, #f5576c);
+        
+        .btn-3d {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
         }
-
-        .simulator-btn {
-            background: linear-gradient(135deg, #11998e, #38ef7d);
+        
+        .btn-admin {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
             color: white;
         }
-
-        .viewer-3d-btn {
-            background: linear-gradient(135deg, #fc466b, #3f5efb);
+        
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 10px;
             color: white;
+            display: none;
+            z-index: 999;
         }
-
-        .mode-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        
+        .controls.visible {
+            display: block;
         }
-
-        /* Admin Panel */
-        #adminPanel {
+        
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .back-btn.visible {
+            display: block;
+        }
+        
+        .admin-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            overflow-y: auto;
             display: none;
             padding: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
-            overflow-y: auto;
-            height: 100vh;
+            z-index: 1000;
         }
-
+        
+        .admin-panel.visible {
+            display: block;
+        }
+        
         .admin-header {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             padding: 20px;
+            border-radius: 10px;
             margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
-
-        .admin-header h2 {
-            color: #333;
+        
+        .form-group {
             margin-bottom: 15px;
         }
-
-        .admin-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .admin-section {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .admin-section h3 {
-            color: #333;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
+        
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 600;
+            margin-bottom: 5px;
+            font-weight: bold;
         }
-
-        .form-group input,
-        .form-group select {
+        
+        .form-group input, .form-group select {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
             font-size: 16px;
-            transition: border-color 0.3s ease;
         }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .btn {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #f5576c, #f093fb);
-            color: white;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #11998e, #38ef7d);
-            color: white;
-            width: 100%;
-            margin-top: 10px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .object-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .object-item {
-            background: #f8f9fa;
+        
+        .objects-list {
+            margin-top: 20px;
+            background: #f5f5f5;
             padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .object-item {
+            background: white;
+            padding: 10px;
             margin-bottom: 10px;
-            border-radius: 8px;
+            border-radius: 5px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: background 0.3s ease;
         }
-
-        .object-item:hover {
-            background: #e9ecef;
-        }
-
-        /* Simulator Panel */
-        #simulatorPanel {
-            display: none;
-            position: fixed;
-            width: 100vw;
-            height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .simulator-container {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            height: 100vh;
-            gap: 20px;
-            padding: 20px;
-        }
-
-        .simulator-controls {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 20px;
-            overflow-y: auto;
-        }
-
-        .simulator-view {
-            background: rgba(0, 0, 0, 0.8);
-            border-radius: 15px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .radar-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 500px;
-            height: 500px;
-        }
-
-        .radar {
-            width: 100%;
-            height: 100%;
-            border: 2px solid #0f0;
-            border-radius: 50%;
-            position: relative;
-            background: radial-gradient(circle, transparent, rgba(0, 255, 0, 0.1));
-        }
-
-        .radar::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: rgba(0, 255, 0, 0.3);
-        }
-
-        .radar::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 50%;
-            width: 1px;
-            background: rgba(0, 255, 0, 0.3);
-        }
-
-        .radar-sweep {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 50%;
-            height: 2px;
-            background: linear-gradient(to right, transparent, #0f0);
-            transform-origin: 0 50%;
-            animation: sweep 4s linear infinite;
-        }
-
-        @keyframes sweep {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .user-marker {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 10px;
-            height: 10px;
-            background: #00f;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-        }
-
-        .object-marker {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: #f00;
-            border: 1px solid #fff;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            cursor: pointer;
-            z-index: 5;
-        }
-
-        .object-marker:hover {
-            width: 12px;
-            height: 12px;
-            box-shadow: 0 0 10px #f00;
-        }
-
-        .marker-label {
-            position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
+        
+        .delete-btn {
+            background: #f44336;
             color: white;
-            padding: 2px 5px;
-            border-radius: 3px;
-            font-size: 10px;
-            white-space: nowrap;
-            display: none;
-        }
-
-        .object-marker:hover .marker-label {
-            display: block;
-        }
-
-        .distance-rings {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-        }
-
-        .distance-ring {
-            position: absolute;
-            border: 1px solid rgba(0, 255, 0, 0.2);
-            border-radius: 50%;
-        }
-
-        .info-panel {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #0f0;
-            padding: 15px;
-            border-radius: 10px;
-            font-family: monospace;
-        }
-
-        .alert {
-            background: #4caf50;
-            color: white;
-            padding: 10px;
+            border: none;
+            padding: 5px 10px;
             border-radius: 5px;
-            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        
+        #scene-3d {
             display: none;
         }
-
-        .alert.show {
+        
+        #scene-3d.visible {
             display: block;
         }
-
-        .alert.warning {
-            background: #ff9800;
+        
+        #scene-ar {
+            display: none;
         }
-
-        @media (max-width: 768px) {
-            .admin-grid {
-                grid-template-columns: 1fr;
-            }
-            .simulator-container {
-                grid-template-columns: 1fr;
-            }
-            .simulator-controls {
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                height: 200px;
-                z-index: 100;
-            }
+        
+        #scene-ar.visible {
+            display: block;
         }
     </style>
 </head>
 <body>
-    <!-- Mode Selection Screen -->
-    <div id="modeSelection">
-        <div class="mode-container">
-            <h1>🌍 Geo AR System</h1>
-            <div class="alert warning show">
-                ⚠️ For AR Viewer: Requires HTTPS and GPS permissions.<br>
-                Use Simulator Mode for testing without GPS.
-            </div>
-            <div class="mode-buttons">
-                <button class="mode-btn admin-btn" onclick="enterAdminMode()">
-                    🔧 Admin Dashboard
-                </button>
-                <button class="mode-btn simulator-btn" onclick="enterSimulatorMode()">
-                    🎮 Radar Simulator (No GPS Required)
-                </button>
-                <button class="mode-btn viewer-3d-btn" onclick="enter3DViewerMode()">
-                    🎭 3D Viewer (See Actual Objects!)
-                </button>
-                <button class="mode-btn viewer-btn" onclick="enterViewerMode()">
-                    📱 AR Camera (Requires HTTPS + GPS)
-                </button>
-            </div>
+    <!-- Main Menu -->
+    <div id="menu" class="menu">
+        <h1>🌐 AR Object Viewer</h1>
+        <div class="menu-buttons">
+            <button class="btn btn-ar" onclick="startAR()">📷 Camera AR View</button>
+            <button class="btn btn-3d" onclick="start3D()">🎮 3D Preview</button>
+            <button class="btn btn-admin" onclick="openAdmin()">⚙️ Manage Objects</button>
         </div>
+        <p style="color: white; margin-top: 20px; text-align: center; padding: 0 20px;">
+            Note: Camera AR requires HTTPS. Deploy to GitHub Pages or Netlify for camera access.
+        </p>
+    </div>
+
+    <!-- Back Button -->
+    <button id="backBtn" class="back-btn" onclick="goBack()">← Back</button>
+
+    <!-- AR Camera Scene -->
+    <a-scene
+        id="scene-ar"
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        vr-mode-ui="enabled: false"
+        renderer="logarithmicDepthBuffer: true; precision: medium; antialias: true; alpha: true;">
+        
+        <a-assets>
+            <a-asset-item id="messageText" inline>AR Objects Loading...</a-asset-item>
+        </a-assets>
+
+        <!-- Camera -->
+        <a-entity camera></a-entity>
+        
+        <!-- Marker-based AR (works better than GPS) -->
+        <a-marker preset="hiro">
+            <a-box position="0 0.5 0" material="color: red;" animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"></a-box>
+            <a-text value="RED BOX" position="0 1.5 0" align="center" color="white"></a-text>
+        </a-marker>
+        
+        <a-marker preset="kanji">
+            <a-sphere position="0 0.5 0" radius="0.5" material="color: blue;" animation="property: position; to: 0 1.5 0; loop: true; dur: 2000; dir: alternate"></a-sphere>
+            <a-text value="BLUE SPHERE" position="0 2 0" align="center" color="white"></a-text>
+        </a-marker>
+        
+        <a-marker type="barcode" value="5">
+            <a-cylinder position="0 0.5 0" radius="0.5" height="1" material="color: green;" animation="property: rotation; to: 360 0 0; loop: true; dur: 3000"></a-cylinder>
+            <a-text value="GREEN CYLINDER" position="0 2 0" align="center" color="white"></a-text>
+        </a-marker>
+    </a-scene>
+
+    <!-- 3D Preview Scene -->
+    <a-scene id="scene-3d" embedded vr-mode-ui="enabled: false">
+        <a-assets>
+            <img id="skyTexture" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23001122'/%3E%3Cstop offset='100%25' style='stop-color:%23004466'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23grad)'/%3E%3C/svg%3E">
+        </a-assets>
+        
+        <a-sky src="#skyTexture"></a-sky>
+        
+        <!-- Lighting -->
+        <a-light type="ambient" color="#445"></a-light>
+        <a-light type="point" intensity="2" position="2 4 4"></a-light>
+        
+        <!-- Ground -->
+        <a-plane position="0 0 -4" rotation="-90 0 0" width="50" height="50" color="#1a1a2e" shadow></a-plane>
+        
+        <!-- Grid lines -->
+        <a-entity id="grid3d"></a-entity>
+        
+        <!-- Objects Container -->
+        <a-entity id="objects3d" position="0 0 -5"></a-entity>
+        
+        <!-- Camera with controls -->
+        <a-camera position="0 2 5" look-controls wasd-controls>
+            <a-cursor color="#4CC3D9"></a-cursor>
+        </a-camera>
+    </a-scene>
+
+    <!-- Controls Info -->
+    <div id="controls" class="controls">
+        <div id="controlsContent"></div>
     </div>
 
     <!-- Admin Panel -->
-    <div id="adminPanel">
+    <div id="adminPanel" class="admin-panel">
         <div class="admin-header">
-            <h2>Admin Dashboard</h2>
-            <button class="btn btn-danger" onclick="backToMenu()">Back to Menu</button>
-        </div>
-
-        <div class="alert" id="successAlert">Object added successfully!</div>
-
-        <div class="admin-grid">
-            <div class="admin-section">
-                <h3>Add New AR Object</h3>
-                <form id="addObjectForm">
-                    <div class="form-group">
-                        <label>Object Name</label>
-                        <input type="text" id="objectName" required placeholder="Enter object name">
-                    </div>
-                    <div class="form-group">
-                        <label>Object Type</label>
-                        <select id="objectType">
-                            <option value="box">Box</option>
-                            <option value="sphere">Sphere</option>
-                            <option value="cylinder">Cylinder</option>
-                            <option value="cone">Cone</option>
-                            <option value="torus">Torus</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Color</label>
-                        <input type="color" id="objectColor" value="#ff6b6b">
-                    </div>
-                    <div class="form-group">
-                        <label>Size (meters)</label>
-                        <input type="number" id="objectScale" min="1" max="100" value="10">
-                    </div>
-                    <div class="form-group">
-                        <label>Latitude</label>
-                        <input type="number" id="latitude" step="any" required placeholder="e.g., 37.7749">
-                    </div>
-                    <div class="form-group">
-                        <label>Longitude</label>
-                        <input type="number" id="longitude" step="any" required placeholder="e.g., -122.4194">
-                    </div>
-                    <button type="submit" class="btn btn-primary">Add Object</button>
-                    <button type="button" class="btn btn-success" onclick="useSimulatedLocation()">📍 Use Simulated Location</button>
-                </form>
-            </div>
-
-            <div class="admin-section">
-                <h3>Active AR Objects (<span id="objectCounter">0</span>)</h3>
-                <div id="objectsList" class="object-list">
-                    <!-- Objects will be listed here -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Simulator Panel -->
-    <div id="simulatorPanel">
-        <div class="simulator-container">
-            <div class="simulator-controls">
-                <h3>Simulator Controls</h3>
-                <button class="btn btn-danger" onclick="backToMenu()">Back to Menu</button>
-                
-                <div style="margin-top: 20px;">
-                    <h4>Your Position</h4>
-                    <div class="form-group">
-                        <label>Latitude</label>
-                        <input type="number" id="simLat" value="37.7749" step="0.0001">
-                    </div>
-                    <div class="form-group">
-                        <label>Longitude</label>
-                        <input type="number" id="simLon" value="-122.4194" step="0.0001">
-                    </div>
-                    <button class="btn btn-primary" onclick="updateSimPosition()">Update Position</button>
-                </div>
-
-                <div style="margin-top: 20px;">
-                    <h4>Movement</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                        <button class="btn btn-success" onclick="moveSimulator('north')">↑ North</button>
-                        <button class="btn btn-success" onclick="moveSimulator('south')">↓ South</button>
-                        <button class="btn btn-success" onclick="moveSimulator('west')">← West</button>
-                        <button class="btn btn-success" onclick="moveSimulator('east')">→ East</button>
-                    </div>
-                </div>
-
-                <div style="margin-top: 20px;">
-                    <h4>Objects Nearby: <span id="nearbyCount">0</span></h4>
-                    <div id="nearbyList" style="max-height: 200px; overflow-y: auto;">
-                        <!-- Nearby objects list -->
-                    </div>
-                </div>
-            </div>
-
-            <div class="simulator-view">
-                <div class="info-panel">
-                    <div>RADAR VIEW - 1km Range</div>
-                    <div>Position: <span id="simPosition">--</span></div>
-                    <div>Objects in Range: <span id="rangeCount">0</span></div>
-                    <div style="margin-top: 10px; color: #fff;">
-                        • Blue = You<br>
-                        • Red = AR Objects<br>
-                        • Rings = 250m intervals
-                    </div>
-                </div>
-
-                <div class="radar-container">
-                    <div class="distance-rings">
-                        <div class="distance-ring" style="width: 125px; height: 125px; top: -62.5px; left: -62.5px;"></div>
-                        <div class="distance-ring" style="width: 250px; height: 250px; top: -125px; left: -125px;"></div>
-                        <div class="distance-ring" style="width: 375px; height: 375px; top: -187.5px; left: -187.5px;"></div>
-                        <div class="distance-ring" style="width: 500px; height: 500px; top: -250px; left: -250px;"></div>
-                    </div>
-                    <div class="radar">
-                        <div class="radar-sweep"></div>
-                        <div class="user-marker"></div>
-                        <div id="radarObjects">
-                            <!-- Object markers will be added here -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3D Viewer Panel -->
-    <div id="viewer3DPanel" style="display: none; position: fixed; width: 100vw; height: 100vh; background: #000;">
-        <div style="position: absolute; top: 20px; left: 20px; z-index: 1000; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; color: white;">
-            <h3 style="margin: 0 0 10px 0;">3D Object Viewer</h3>
-            <div style="font-size: 14px;">
-                <div>🎮 Controls:</div>
-                <div>• Click & Drag: Rotate view</div>
-                <div>• Scroll: Zoom in/out</div>
-                <div>• Right-click & Drag: Pan</div>
-                <div style="margin-top: 10px;">
-                    <strong>Objects: <span id="3dObjectCount">0</span></strong>
-                </div>
-            </div>
-            <button class="btn btn-danger" style="margin-top: 10px;" onclick="backToMenu()">Back to Menu</button>
+            <h2>Object Manager</h2>
         </div>
         
-        <a-scene embedded style="height: 100vh; width: 100vw;">
-            <a-sky color="#001122"></a-sky>
-            
-            <!-- Lighting -->
-            <a-light type="ambient" color="#445"></a-light>
-            <a-light type="point" intensity="2" position="2 4 4"></a-light>
-            
-            <!-- Ground plane -->
-            <a-plane position="0 0 -4" rotation="-90 0 0" width="100" height="100" color="#2a2a2a" shadow></a-plane>
-            
-            <!-- Grid -->
-            <a-entity id="gridLines"></a-entity>
-            
-            <!-- Camera with controls -->
-            <a-camera position="0 10 20" look-controls wasd-controls>
-                <a-cursor color="#4CC3D9"></a-cursor>
-            </a-camera>
-            
-            <!-- Objects will be added here -->
-            <a-entity id="objects3D"></a-entity>
-        </a-scene>
+        <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+            <h3>Add New Object</h3>
+            <form id="objectForm" onsubmit="addObject(event)">
+                <div class="form-group">
+                    <label>Name:</label>
+                    <input type="text" id="objName" required>
+                </div>
+                <div class="form-group">
+                    <label>Type:</label>
+                    <select id="objType">
+                        <option value="box">Box</option>
+                        <option value="sphere">Sphere</option>
+                        <option value="cylinder">Cylinder</option>
+                        <option value="cone">Cone</option>
+                        <option value="torus">Torus</option>
+                        <option value="ring">Ring</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Color:</label>
+                    <input type="color" id="objColor" value="#ff0000">
+                </div>
+                <div class="form-group">
+                    <label>Size:</label>
+                    <input type="range" id="objSize" min="0.5" max="5" step="0.5" value="1">
+                    <span id="sizeValue">1</span>
+                </div>
+                <div class="form-group">
+                    <label>Position X:</label>
+                    <input type="number" id="posX" value="0" step="0.5">
+                </div>
+                <div class="form-group">
+                    <label>Position Z:</label>
+                    <input type="number" id="posZ" value="-5" step="0.5">
+                </div>
+                <button type="submit" class="btn btn-admin" style="width: 100%;">Add Object</button>
+            </form>
+        </div>
+        
+        <div class="objects-list">
+            <h3>Current Objects (<span id="objCount">0</span>)</h3>
+            <div id="objectsList"></div>
+        </div>
     </div>
 
     <script>
-        // Store AR objects in memory
-        let arObjects = [];
-        let objectIdCounter = 1;
-        let simulatorLat = 37.7749;
-        let simulatorLon = -122.4194;
-
-        // Initialize with demo objects
-        function initializeDemoObjects() {
-            arObjects = [
-                {
-                    id: objectIdCounter++,
-                    name: 'North Beacon',
-                    type: 'sphere',
-                    color: '#ff6b6b',
-                    scale: 15,
-                    lat: 37.7799,  // 500m north
-                    lon: -122.4194
-                },
-                {
-                    id: objectIdCounter++,
-                    name: 'East Tower',
-                    type: 'box',
-                    color: '#4ecdc4',
-                    scale: 20,
-                    lat: 37.7749,
-                    lon: -122.4144  // 500m east
-                },
-                {
-                    id: objectIdCounter++,
-                    name: 'South Gate',
-                    type: 'cylinder',
-                    color: '#95e1d3',
-                    scale: 10,
-                    lat: 37.7699,  // 500m south
-                    lon: -122.4194
-                },
-                {
-                    id: objectIdCounter++,
-                    name: 'West Monument',
-                    type: 'cone',
-                    color: '#f38181',
-                    scale: 12,
-                    lat: 37.7749,
-                    lon: -122.4244  // 500m west
-                },
-                {
-                    id: objectIdCounter++,
-                    name: 'Center Plaza',
-                    type: 'torus',
-                    color: '#ffd700',
-                    scale: 8,
-                    lat: 37.7749,
-                    lon: -122.4194  // At center
+        // Store objects
+        let arObjects = JSON.parse(localStorage.getItem('arObjects')) || [
+            { id: 1, name: 'Demo Box', type: 'box', color: '#FF0000', size: 1, x: 0, z: -5 },
+            { id: 2, name: 'Demo Sphere', type: 'sphere', color: '#00FF00', size: 0.8, x: 2, z: -5 },
+            { id: 3, name: 'Demo Cylinder', type: 'cylinder', color: '#0000FF', size: 1.2, x: -2, z: -5 }
+        ];
+        
+        // Save to localStorage
+        function saveObjects() {
+            localStorage.setItem('arObjects', JSON.stringify(arObjects));
+            updateObjectsList();
+        }
+        
+        // Update size display
+        document.getElementById('objSize').addEventListener('input', function(e) {
+            document.getElementById('sizeValue').textContent = e.target.value;
+        });
+        
+        // Start AR Camera
+        function startAR() {
+            // Check if running from file://
+            if (window.location.protocol === 'file:') {
+                if (confirm('Camera AR requires HTTPS to work.\n\nOptions:\n1. Deploy to GitHub Pages (free)\n2. Use Netlify Drop (instant)\n3. Try 3D Preview instead\n\nWould you like to try 3D Preview mode?')) {
+                    start3D();
                 }
-            ];
-            updateObjectsList();
+                return;
+            }
+            
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('scene-ar').classList.add('visible');
+            document.getElementById('backBtn').classList.add('visible');
+            document.getElementById('controls').classList.add('visible');
+            
+            document.getElementById('controlsContent').innerHTML = `
+                <strong>📷 AR Camera Mode</strong><br>
+                Print these markers to see objects:<br>
+                • HIRO marker: Red box<br>
+                • KANJI marker: Blue sphere<br>
+                • Barcode #5: Green cylinder<br>
+                <a href="https://github.com/AR-js-org/AR.js/tree/master/data/images" target="_blank" style="color: #4CC3D9;">Get Markers</a>
+            `;
+            
+            renderARObjects();
         }
-
-        // Mode switching functions
-        function enterAdminMode() {
-            document.getElementById('modeSelection').style.display = 'none';
-            document.getElementById('adminPanel').style.display = 'block';
-            document.getElementById('simulatorPanel').style.display = 'none';
-            document.getElementById('viewer3DPanel').style.display = 'none';
-            updateObjectsList();
-        }
-
-        function enterSimulatorMode() {
-            document.getElementById('modeSelection').style.display = 'none';
-            document.getElementById('adminPanel').style.display = 'none';
-            document.getElementById('simulatorPanel').style.display = 'block';
-            document.getElementById('viewer3DPanel').style.display = 'none';
-            updateRadarView();
-        }
-
-        function enter3DViewerMode() {
-            document.getElementById('modeSelection').style.display = 'none';
-            document.getElementById('adminPanel').style.display = 'none';
-            document.getElementById('simulatorPanel').style.display = 'none';
-            document.getElementById('viewer3DPanel').style.display = 'block';
+        
+        // Start 3D Preview
+        function start3D() {
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('scene-3d').classList.add('visible');
+            document.getElementById('backBtn').classList.add('visible');
+            document.getElementById('controls').classList.add('visible');
+            
+            document.getElementById('controlsContent').innerHTML = `
+                <strong>🎮 3D Preview Mode</strong><br>
+                • Drag: Rotate view<br>
+                • Scroll: Zoom<br>
+                • WASD: Move<br>
+                • Click objects to select
+            `;
+            
             render3DObjects();
         }
-
-        function enterViewerMode() {
-            if (!confirm('AR Camera View requires:\n1. HTTPS connection (not file://)\n2. GPS permissions\n3. Camera permissions\n\nTo use this mode, you need to:\n1. Deploy to GitHub Pages, Netlify, or Vercel (free)\n2. Access via HTTPS URL\n3. Allow all permissions\n\nContinue anyway?')) {
-                return;
-            }
-            alert('This won\'t work from a local file. Please use 3D Viewer mode instead, or deploy the app online.');
-            enter3DViewerMode();
+        
+        // Open Admin
+        function openAdmin() {
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('adminPanel').classList.add('visible');
+            document.getElementById('backBtn').classList.add('visible');
+            updateObjectsList();
         }
-
-        function backToMenu() {
-            document.getElementById('modeSelection').style.display = 'flex';
-            document.getElementById('adminPanel').style.display = 'none';
-            document.getElementById('simulatorPanel').style.display = 'none';
-            document.getElementById('viewer3DPanel').style.display = 'none';
+        
+        // Go Back
+        function goBack() {
+            document.getElementById('menu').classList.remove('hidden');
+            document.getElementById('scene-ar').classList.remove('visible');
+            document.getElementById('scene-3d').classList.remove('visible');
+            document.getElementById('adminPanel').classList.remove('visible');
+            document.getElementById('backBtn').classList.remove('visible');
+            document.getElementById('controls').classList.remove('visible');
         }
-
-        // Use simulated location in admin panel
-        function useSimulatedLocation() {
-            document.getElementById('latitude').value = simulatorLat.toFixed(6);
-            document.getElementById('longitude').value = simulatorLon.toFixed(6);
-            showAlert('Using simulated location: ' + simulatorLat.toFixed(4) + ', ' + simulatorLon.toFixed(4));
-        }
-
-        // Admin Panel Functions
-        document.getElementById('addObjectForm').addEventListener('submit', function(e) {
+        
+        // Add Object
+        function addObject(e) {
             e.preventDefault();
             
-            const newObject = {
-                id: objectIdCounter++,
-                name: document.getElementById('objectName').value,
-                type: document.getElementById('objectType').value,
-                color: document.getElementById('objectColor').value,
-                scale: parseInt(document.getElementById('objectScale').value),
-                lat: parseFloat(document.getElementById('latitude').value),
-                lon: parseFloat(document.getElementById('longitude').value)
+            const newObj = {
+                id: Date.now(),
+                name: document.getElementById('objName').value,
+                type: document.getElementById('objType').value,
+                color: document.getElementById('objColor').value,
+                size: parseFloat(document.getElementById('objSize').value),
+                x: parseFloat(document.getElementById('posX').value),
+                z: parseFloat(document.getElementById('posZ').value)
             };
             
-            arObjects.push(newObject);
-            updateObjectsList();
+            arObjects.push(newObj);
+            saveObjects();
             
-            // Reset form
-            this.reset();
-            document.getElementById('objectScale').value = '10';
+            document.getElementById('objectForm').reset();
+            document.getElementById('sizeValue').textContent = '1';
             
-            showAlert('Object added successfully!');
-        });
-
-        function showAlert(message, type = '') {
-            const alert = document.getElementById('successAlert');
-            alert.textContent = message;
-            alert.className = 'alert show ' + type;
-            setTimeout(() => {
-                alert.classList.remove('show');
-            }, 3000);
+            alert('Object added! View in 3D Preview or AR Camera.');
         }
-
+        
+        // Delete Object
+        function deleteObject(id) {
+            arObjects = arObjects.filter(obj => obj.id !== id);
+            saveObjects();
+        }
+        
+        // Update Objects List
         function updateObjectsList() {
-            const listContainer = document.getElementById('objectsList');
-            const counter = document.getElementById('objectCounter');
-            
-            counter.textContent = arObjects.length;
+            const list = document.getElementById('objectsList');
+            document.getElementById('objCount').textContent = arObjects.length;
             
             if (arObjects.length === 0) {
-                listContainer.innerHTML = '<p style="color: #999;">No objects added yet</p>';
+                list.innerHTML = '<p>No objects yet. Add some above!</p>';
                 return;
             }
             
-            listContainer.innerHTML = arObjects.map(obj => `
+            list.innerHTML = arObjects.map(obj => `
                 <div class="object-item">
-                    <div style="flex: 1;">
-                        <strong>${obj.name}</strong>
-                        <div style="color: #666; font-size: 14px;">
-                            Type: ${obj.type} | Color: ${obj.color} | Size: ${obj.scale}m<br>
-                            📍 ${obj.lat.toFixed(6)}, ${obj.lon.toFixed(6)}
-                        </div>
+                    <div>
+                        <strong>${obj.name}</strong><br>
+                        <small>${obj.type} | ${obj.color} | Size: ${obj.size}</small>
                     </div>
-                    <button class="btn btn-danger" onclick="removeObject(${obj.id})">Remove</button>
+                    <button class="delete-btn" onclick="deleteObject(${obj.id})">Delete</button>
                 </div>
             `).join('');
         }
-
-        function removeObject(id) {
-            arObjects = arObjects.filter(obj => obj.id !== id);
-            updateObjectsList();
-            if (document.getElementById('simulatorPanel').style.display !== 'none') {
-                updateRadarView();
-            }
+        
+        // Render objects in AR scene
+        function renderARObjects() {
+            // Objects are added via markers in AR mode
+            // This is more reliable than GPS-based AR
         }
-
-        // Calculate distance between two GPS coordinates
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Earth's radius in meters
-            const φ1 = lat1 * Math.PI / 180;
-            const φ2 = lat2 * Math.PI / 180;
-            const Δφ = (lat2 - lat1) * Math.PI / 180;
-            const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                      Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-            return R * c;
-        }
-
-        // Calculate bearing between two GPS coordinates
-        function calculateBearing(lat1, lon1, lat2, lon2) {
-            const φ1 = lat1 * Math.PI / 180;
-            const φ2 = lat2 * Math.PI / 180;
-            const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-            const y = Math.sin(Δλ) * Math.cos(φ2);
-            const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-
-            const θ = Math.atan2(y, x);
-            return (θ * 180 / Math.PI + 360) % 360;
-        }
-
-        // Simulator Functions
-        function updateSimPosition() {
-            simulatorLat = parseFloat(document.getElementById('simLat').value);
-            simulatorLon = parseFloat(document.getElementById('simLon').value);
-            updateRadarView();
-        }
-
-        function moveSimulator(direction) {
-            const moveDistance = 0.001; // Approximately 100 meters
-            switch(direction) {
-                case 'north':
-                    simulatorLat += moveDistance;
-                    break;
-                case 'south':
-                    simulatorLat -= moveDistance;
-                    break;
-                case 'east':
-                    simulatorLon += moveDistance;
-                    break;
-                case 'west':
-                    simulatorLon -= moveDistance;
-                    break;
-            }
-            document.getElementById('simLat').value = simulatorLat.toFixed(6);
-            document.getElementById('simLon').value = simulatorLon.toFixed(6);
-            updateRadarView();
-        }
-
-        function updateRadarView() {
-            // Update position display
-            document.getElementById('simPosition').textContent = 
-                `${simulatorLat.toFixed(6)}, ${simulatorLon.toFixed(6)}`;
-
-            // Clear existing radar objects
-            const radarContainer = document.getElementById('radarObjects');
-            radarContainer.innerHTML = '';
-
-            // Find objects within 1km range
-            const maxRange = 1000; // 1km in meters
-            const radarRadius = 250; // Radar display radius in pixels
-            let nearbyObjects = [];
-            let inRangeCount = 0;
-
-            arObjects.forEach(obj => {
-                const distance = calculateDistance(simulatorLat, simulatorLon, obj.lat, obj.lon);
-                
-                if (distance <= maxRange) {
-                    inRangeCount++;
-                    const bearing = calculateBearing(simulatorLat, simulatorLon, obj.lat, obj.lon);
-                    
-                    // Convert to radar coordinates
-                    const scale = distance / maxRange;
-                    const radarDistance = scale * radarRadius;
-                    const angleRad = (bearing - 90) * Math.PI / 180;
-                    const x = Math.cos(angleRad) * radarDistance;
-                    const y = Math.sin(angleRad) * radarDistance;
-
-                    // Create marker
-                    const marker = document.createElement('div');
-                    marker.className = 'object-marker';
-                    marker.style.left = (x + 250) + 'px';
-                    marker.style.top = (y + 250) + 'px';
-                    marker.style.background = obj.color;
-                    
-                    const label = document.createElement('div');
-                    label.className = 'marker-label';
-                    label.textContent = `${obj.name} (${Math.round(distance)}m)`;
-                    marker.appendChild(label);
-                    
-                    radarContainer.appendChild(marker);
-
-                    nearbyObjects.push({
-                        ...obj,
-                        distance: distance,
-                        bearing: bearing
-                    });
-                }
-            });
-
-            // Update counts
-            document.getElementById('rangeCount').textContent = inRangeCount;
-            document.getElementById('nearbyCount').textContent = nearbyObjects.length;
-
-            // Update nearby list
-            nearbyObjects.sort((a, b) => a.distance - b.distance);
-            const nearbyList = document.getElementById('nearbyList');
-            nearbyList.innerHTML = nearbyObjects.map(obj => `
-                <div style="padding: 5px; background: rgba(255,255,255,0.1); margin: 2px; border-radius: 5px;">
-                    <strong style="color: ${obj.color}">${obj.name}</strong><br>
-                    <small>${Math.round(obj.distance)}m | ${Math.round(obj.bearing)}°</small>
-                </div>
-            `).join('') || '<p style="color: #999;">No objects in range</p>';
-        }
-
-        // 3D Viewer Functions
+        
+        // Render objects in 3D scene
         function render3DObjects() {
-            const container = document.getElementById('objects3D');
-            container.innerHTML = ''; // Clear existing objects
-            
-            document.getElementById('3dObjectCount').textContent = arObjects.length;
-            
-            // Add grid lines
-            const gridContainer = document.getElementById('gridLines');
-            gridContainer.innerHTML = '';
-            for (let i = -5; i <= 5; i++) {
-                // Horizontal lines
-                const hLine = document.createElement('a-entity');
-                hLine.setAttribute('geometry', 'primitive: plane; width: 100; height: 0.1');
-                hLine.setAttribute('material', 'color: #444; opacity: 0.5');
-                hLine.setAttribute('position', `0 0.01 ${i * 10}`);
-                hLine.setAttribute('rotation', '-90 0 0');
-                gridContainer.appendChild(hLine);
-                
-                // Vertical lines
-                const vLine = document.createElement('a-entity');
-                vLine.setAttribute('geometry', 'primitive: plane; width: 0.1; height: 100');
-                vLine.setAttribute('material', 'color: #444; opacity: 0.5');
-                vLine.setAttribute('position', `${i * 10} 0.01 0`);
-                vLine.setAttribute('rotation', '-90 90 0');
-                gridContainer.appendChild(vLine);
-            }
-            
-            // Calculate positions for objects
-            const centerLat = simulatorLat;
-            const centerLon = simulatorLon;
+            const container = document.getElementById('objects3d');
+            container.innerHTML = '';
             
             arObjects.forEach((obj, index) => {
-                // Calculate relative position
-                const latDiff = (obj.lat - centerLat) * 111000; // Convert to meters
-                const lonDiff = (obj.lon - centerLon) * 111000 * Math.cos(centerLat * Math.PI / 180);
-                
-                // Scale down for visualization (1m = 0.01 units)
-                const x = lonDiff * 0.01;
-                const z = -latDiff * 0.01; // Negative because Z is inverted in 3D
-                const y = obj.scale / 4; // Height based on scale
-                
-                // Create 3D object
                 const entity = document.createElement('a-entity');
-                entity.setAttribute('position', `${x} ${y} ${z}`);
+                entity.setAttribute('position', `${obj.x} ${obj.size} ${obj.z}`);
                 
-                // Add the geometry based on type
-                let geoEntity;
+                let primitive;
                 switch(obj.type) {
                     case 'sphere':
-                        geoEntity = document.createElement('a-sphere');
-                        geoEntity.setAttribute('radius', obj.scale / 10);
+                        primitive = document.createElement('a-sphere');
+                        primitive.setAttribute('radius', obj.size);
                         break;
                     case 'cylinder':
-                        geoEntity = document.createElement('a-cylinder');
-                        geoEntity.setAttribute('radius', obj.scale / 20);
-                        geoEntity.setAttribute('height', obj.scale / 5);
+                        primitive = document.createElement('a-cylinder');
+                        primitive.setAttribute('radius', obj.size / 2);
+                        primitive.setAttribute('height', obj.size * 2);
                         break;
                     case 'cone':
-                        geoEntity = document.createElement('a-cone');
-                        geoEntity.setAttribute('radius-bottom', obj.scale / 10);
-                        geoEntity.setAttribute('height', obj.scale / 5);
+                        primitive = document.createElement('a-cone');
+                        primitive.setAttribute('radius-bottom', obj.size);
+                        primitive.setAttribute('height', obj.size * 2);
                         break;
                     case 'torus':
-                        geoEntity = document.createElement('a-torus');
-                        geoEntity.setAttribute('radius', obj.scale / 10);
-                        geoEntity.setAttribute('radius-tubular', obj.scale / 50);
+                        primitive = document.createElement('a-torus');
+                        primitive.setAttribute('radius', obj.size);
+                        primitive.setAttribute('radius-tubular', obj.size / 4);
+                        break;
+                    case 'ring':
+                        primitive = document.createElement('a-ring');
+                        primitive.setAttribute('radius-inner', obj.size / 2);
+                        primitive.setAttribute('radius-outer', obj.size);
                         break;
                     default: // box
-                        geoEntity = document.createElement('a-box');
-                        geoEntity.setAttribute('width', obj.scale / 10);
-                        geoEntity.setAttribute('height', obj.scale / 10);
-                        geoEntity.setAttribute('depth', obj.scale / 10);
+                        primitive = document.createElement('a-box');
+                        primitive.setAttribute('width', obj.size);
+                        primitive.setAttribute('height', obj.size);
+                        primitive.setAttribute('depth', obj.size);
                 }
                 
-                geoEntity.setAttribute('color', obj.color);
-                geoEntity.setAttribute('shadow', true);
+                primitive.setAttribute('color', obj.color);
+                primitive.setAttribute('shadow', true);
+                primitive.setAttribute('animation', `property: rotation; to: 0 360 0; loop: true; dur: ${5000 + index * 1000}`);
                 
-                // Add animation
-                geoEntity.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 10000');
+                entity.appendChild(primitive);
                 
-                // Add floating animation
-                geoEntity.setAttribute('animation__float', 
-                    `property: position; to: 0 ${obj.scale/10 + 1} 0; dir: alternate; loop: true; dur: 3000; easing: easeInOutSine`);
-                
-                entity.appendChild(geoEntity);
-                
-                // Add text label
+                // Add label
                 const text = document.createElement('a-text');
                 text.setAttribute('value', obj.name);
                 text.setAttribute('align', 'center');
-                text.setAttribute('position', `0 ${obj.scale/10 + 2} 0`);
-                text.setAttribute('color', '#ffffff');
-                text.setAttribute('font', 'kelsonsans');
-                text.setAttribute('width', 20);
+                text.setAttribute('position', `0 ${obj.size + 1} 0`);
+                text.setAttribute('color', '#FFF');
                 entity.appendChild(text);
-                
-                // Add distance text
-                const distance = calculateDistance(centerLat, centerLon, obj.lat, obj.lon);
-                const distText = document.createElement('a-text');
-                distText.setAttribute('value', `${Math.round(distance)}m away`);
-                distText.setAttribute('align', 'center');
-                distText.setAttribute('position', `0 ${obj.scale/10 + 1} 0`);
-                distText.setAttribute('color', '#aaaaaa');
-                distText.setAttribute('font', 'kelsonsans');
-                distText.setAttribute('width', 15);
-                entity.appendChild(distText);
-                
-                // Add pole to ground
-                const pole = document.createElement('a-cylinder');
-                pole.setAttribute('radius', '0.1');
-                pole.setAttribute('height', y * 2);
-                pole.setAttribute('position', `0 ${-y} 0`);
-                pole.setAttribute('color', '#666666');
-                pole.setAttribute('opacity', '0.5');
-                entity.appendChild(pole);
                 
                 container.appendChild(entity);
             });
             
-            // Add user position marker
-            const userMarker = document.createElement('a-entity');
-            userMarker.setAttribute('position', '0 0.5 0');
-            
-            const userCone = document.createElement('a-cone');
-            userCone.setAttribute('radius-bottom', '0.5');
-            userCone.setAttribute('height', '1');
-            userCone.setAttribute('color', '#00ff00');
-            userCone.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 2000');
-            userMarker.appendChild(userCone);
-            
-            const userText = document.createElement('a-text');
-            userText.setAttribute('value', 'YOUR POSITION');
-            userText.setAttribute('align', 'center');
-            userText.setAttribute('position', '0 2 0');
-            userText.setAttribute('color', '#00ff00');
-            userText.setAttribute('width', 10);
-            userMarker.appendChild(userText);
-            
-            container.appendChild(userMarker);
-        }
-
-        // Keyboard controls for simulator
-        document.addEventListener('keydown', function(e) {
-            if (document.getElementById('simulatorPanel').style.display === 'none') return;
-            
-            switch(e.key) {
-                case 'ArrowUp':
-                case 'w':
-                    moveSimulator('north');
-                    break;
-                case 'ArrowDown':
-                case 's':
-                    moveSimulator('south');
-                    break;
-                case 'ArrowLeft':
-                case 'a':
-                    moveSimulator('west');
-                    break;
-                case 'ArrowRight':
-                case 'd':
-                    moveSimulator('east');
-                    break;
+            // Add grid
+            const grid = document.getElementById('grid3d');
+            grid.innerHTML = '';
+            for (let i = -10; i <= 10; i += 2) {
+                // X lines
+                const xLine = document.createElement('a-plane');
+                xLine.setAttribute('width', '0.05');
+                xLine.setAttribute('height', '20');
+                xLine.setAttribute('rotation', '-90 0 0');
+                xLine.setAttribute('position', `${i} 0.01 0`);
+                xLine.setAttribute('color', '#333');
+                grid.appendChild(xLine);
+                
+                // Z lines
+                const zLine = document.createElement('a-plane');
+                zLine.setAttribute('width', '20');
+                zLine.setAttribute('height', '0.05');
+                zLine.setAttribute('rotation', '-90 0 0');
+                zLine.setAttribute('position', `0 0.01 ${i}`);
+                zLine.setAttribute('color', '#333');
+                grid.appendChild(zLine);
             }
-        });
-
-        // Initialize with demo objects on load
-        window.addEventListener('load', function() {
-            initializeDemoObjects();
-        });
+        }
+        
+        // Initialize
+        saveObjects();
     </script>
 </body>
 </html>
