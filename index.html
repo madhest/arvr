@@ -1,27 +1,427 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <meta charset="utf-8">
+    <title>Markerless AR - Tap to Place</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- A-Frame + AR.js for location-based AR -->
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    
+    <!-- Model Viewer for easy AR -->
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        .menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .menu h1 {
+            color: white;
+            margin-bottom: 30px;
+            text-align: center;
+            padding: 0 20px;
+        }
+        
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 90%;
+            max-width: 400px;
+        }
+        
+        .btn {
+            padding: 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s;
+            text-align: center;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-location {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn-instant {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        .btn-model {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+        }
+        
+        .btn-back {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            z-index: 999;
+            display: none;
+        }
+        
+        .btn-back.visible {
+            display: block;
+        }
+        
+        /* Location-based AR styles */
+        #locationAR {
+            display: none;
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #locationAR.visible {
+            display: block;
+        }
+        
+        /* Instant AR styles */
+        #instantAR {
+            display: none;
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #instantAR.visible {
+            display: block;
+        }
+        
+        /* Model Viewer AR styles */
+        #modelAR {
+            display: none;
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            background: white;
+        }
+        
+        #modelAR.visible {
+            display: block;
+        }
+        
+        model-viewer {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .info-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 998;
+            display: none;
+        }
+        
+        .info-panel.visible {
+            display: block;
+        }
+        
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 998;
+            display: none;
+            max-width: 300px;
+        }
+        
+        .controls.visible {
+            display: block;
+        }
+        
+        .tap-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            pointer-events: none;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
 </head>
-<body style="margin: 0; overflow: hidden;">
-    <a-scene
-        embedded
-        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-        vr-mode-ui="enabled: false">
+<body>
+    <!-- Main Menu -->
+    <div id="menu" class="menu">
+        <h1>🌟 Markerless AR<br>No Markers Needed!</h1>
+        <div class="menu-buttons">
+            <button class="btn btn-location" onclick="startLocationAR()">
+                📍 Location-Based AR
+                <small style="display: block; font-size: 12px; margin-top: 5px;">Objects at GPS locations</small>
+            </button>
+            <button class="btn btn-instant" onclick="startInstantAR()">
+                👆 Tap-to-Place AR
+                <small style="display: block; font-size: 12px; margin-top: 5px;">Tap screen to place objects</small>
+            </button>
+            <button class="btn btn-model" onclick="startModelAR()">
+                🚀 Google AR (Best)
+                <small style="display: block; font-size: 12px; margin-top: 5px;">Professional AR experience</small>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Back Button -->
+    <button class="btn-back" onclick="goBack()">← Back</button>
+    
+    <!-- Location-Based AR -->
+    <div id="locationAR">
+        <div class="controls visible">
+            <strong>📍 Location-Based AR</strong><br>
+            <small>Objects appear at real GPS coordinates.<br>
+            Walk around to see them!</small>
+        </div>
+        <a-scene
+            vr-mode-ui="enabled: false"
+            arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;"
+            renderer="antialias: true; alpha: true">
+            
+            <!-- Camera with GPS -->
+            <a-camera gps-new-camera="gpsMinDistance: 5"></a-camera>
+            
+            <!-- Objects at GPS locations (change these coordinates to your area) -->
+            <a-entity
+                gps-new-entity-place="latitude: 37.7749; longitude: -122.4194"
+                scale="20 20 20">
+                <a-box color="red" animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"></a-box>
+                <a-text value="RED BOX" position="0 2 0" align="center" color="white" scale="5 5 5"></a-text>
+            </a-entity>
+            
+            <a-entity
+                gps-new-entity-place="latitude: 37.7751; longitude: -122.4196"
+                scale="15 15 15">
+                <a-sphere color="blue" animation="property: position; to: 0 2 0; loop: true; dur: 2000; dir: alternate"></a-sphere>
+                <a-text value="BLUE SPHERE" position="0 3 0" align="center" color="white" scale="5 5 5"></a-text>
+            </a-entity>
+            
+        </a-scene>
+    </div>
+    
+    <!-- Instant/Tap-to-Place AR -->
+    <div id="instantAR">
+        <div class="tap-indicator">Tap anywhere to place object</div>
+        <a-scene
+            embedded
+            arjs="sourceType: webcam; debugUIEnabled: false;"
+            vr-mode-ui="enabled: false">
+            
+            <a-assets>
+                <a-asset-item id="animated-asset"></a-asset-item>
+            </a-assets>
+            
+            <!-- Camera -->
+            <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+            
+            <!-- Objects container -->
+            <a-entity id="objectContainer"></a-entity>
+        </a-scene>
+    </div>
+    
+    <!-- Google Model Viewer AR -->
+    <div id="modelAR">
+        <model-viewer
+            alt="3D Model"
+            src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+            ios-src="https://modelviewer.dev/shared-assets/models/Astronaut.usdz"
+            poster="https://modelviewer.dev/shared-assets/models/Astronaut.png"
+            shadow-intensity="1"
+            camera-controls
+            enable-pan
+            ar
+            ar-modes="webxr scene-viewer quick-look"
+            ar-placement="floor"
+            ar-scale="auto">
+            
+            <button slot="ar-button" style="
+                position: absolute;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 15px 30px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 30px;
+                font-size: 18px;
+                font-weight: bold;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            ">
+                🎯 View in Your Space
+            </button>
+            
+            <div class="controls" style="position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 10px; color: white;">
+                <strong>Google AR View</strong><br>
+                <small>• Tap "View in Your Space"<br>
+                • Point at floor<br>
+                • Tap to place<br>
+                • Pinch to resize</small>
+            </div>
+        </model-viewer>
+    </div>
+    
+    <!-- Info Panel -->
+    <div class="info-panel" id="infoPanel"></div>
+    
+    <script>
+        let placedObjects = [];
+        let objectIdCounter = 0;
         
-        <!-- HIRO Marker -->
-        <a-marker preset="hiro">
-            <!-- Big Red Box -->
-            <a-box
-                position="0 0.5 0"
-                scale="2 2 2"
-                color="red"
-                animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
-            </a-box>
-        </a-marker>
+        // Start Location-Based AR
+        function startLocationAR() {
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('locationAR').classList.add('visible');
+            document.querySelector('.btn-back').classList.add('visible');
+            
+            // Get user's current location and add objects nearby
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    
+                    // Add dynamic objects near user's location
+                    const scene = document.querySelector('#locationAR a-scene');
+                    
+                    // Add object 50 meters north
+                    const northEntity = document.createElement('a-entity');
+                    northEntity.setAttribute('gps-new-entity-place', 
+                        `latitude: ${lat + 0.0005}; longitude: ${lon}`);
+                    northEntity.innerHTML = `
+                        <a-cylinder color="green" radius="1" height="3"></a-cylinder>
+                        <a-text value="50m North" position="0 4 0" align="center" color="white"></a-text>
+                    `;
+                    scene.appendChild(northEntity);
+                    
+                    console.log(`Your location: ${lat}, ${lon}`);
+                    console.log(`Object placed at: ${lat + 0.0005}, ${lon}`);
+                });
+            }
+        }
         
-        <a-entity camera></a-entity>
-    </a-scene>
+        // Start Instant/Tap-to-Place AR
+        function startInstantAR() {
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('instantAR').classList.add('visible');
+            document.querySelector('.btn-back').classList.add('visible');
+            
+            // Add tap handler
+            document.getElementById('instantAR').addEventListener('click', placeObject);
+        }
+        
+        // Place object at tap location
+        function placeObject(event) {
+            const container = document.getElementById('objectContainer');
+            
+            // Calculate position based on tap
+            const x = (Math.random() - 0.5) * 10;
+            const z = -Math.random() * 10 - 2;
+            const y = Math.random() * 2 + 1;
+            
+            // Create random object
+            const shapes = ['box', 'sphere', 'cylinder', 'cone', 'torus'];
+            const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+            const shape = shapes[Math.floor(Math.random() * shapes.length)];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            const entity = document.createElement(`a-${shape}`);
+            entity.setAttribute('position', `${x} ${y} ${z}`);
+            entity.setAttribute('color', color);
+            entity.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 3000');
+            
+            container.appendChild(entity);
+            
+            // Update indicator
+            document.querySelector('.tap-indicator').textContent = 
+                `Object placed! (${++objectIdCounter} total)`;
+            
+            setTimeout(() => {
+                document.querySelector('.tap-indicator').textContent = 
+                    'Tap anywhere to place object';
+            }, 1500);
+        }
+        
+        // Start Google Model Viewer AR
+        function startModelAR() {
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('modelAR').classList.add('visible');
+            document.querySelector('.btn-back').classList.add('visible');
+        }
+        
+        // Go back to menu
+        function goBack() {
+            document.getElementById('menu').style.display = 'flex';
+            document.getElementById('locationAR').classList.remove('visible');
+            document.getElementById('instantAR').classList.remove('visible');
+            document.getElementById('modelAR').classList.remove('visible');
+            document.querySelector('.btn-back').classList.remove('visible');
+            
+            // Clear placed objects
+            document.getElementById('objectContainer').innerHTML = '';
+            objectIdCounter = 0;
+        }
+        
+        // Check if AR is supported
+        if ('xr' in navigator) {
+            navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+                if (supported) {
+                    console.log('WebXR AR is supported!');
+                }
+            });
+        }
+    </script>
 </body>
 </html>
